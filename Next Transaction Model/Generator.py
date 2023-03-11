@@ -9,7 +9,7 @@ import numpy as np # linear algebra
 import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
 from tensorflow import keras
 from keras.preprocessing.text import Tokenizer
-from keras.preprocessing.sequence import pad_sequences
+from keras.utils import pad_sequences
 
 class AutoencoderDataGenerator(keras.utils.Sequence):
     'Batch Generator for Keras'

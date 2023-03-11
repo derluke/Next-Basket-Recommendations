@@ -9,10 +9,10 @@ import numpy as np # linear algebra
 import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
 import pickle
 import tensorflow as tf
-from tensorflow.keras import layers
-from tensorflow.keras import Model
-from tensorflow.keras.callbacks import ModelCheckpoint,ReduceLROnPlateau,EarlyStopping,Callback
-from tensorflow.keras.regularizers import l2
+from keras import layers
+from keras import Model
+from keras.callbacks import ModelCheckpoint,ReduceLROnPlateau,EarlyStopping,Callback
+from keras.regularizers import l2
 from sklearn.model_selection import train_test_split
 
 from Generator import data_to_arrays, DataGenerator

@@ -7,7 +7,7 @@ Created on Thu Dec 10 14:00:14 2020
 
 import tensorflow as tf
 from tensorflow.python.keras import backend as K
-from tensorflow.keras import layers
+from keras import layers
 
 def dot_product(x, kernel):
     """

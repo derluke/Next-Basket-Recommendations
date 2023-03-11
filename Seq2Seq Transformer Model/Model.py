@@ -25,14 +25,14 @@ s3_resource.Object("keshav-datasets","Instacart/config.pkl").put(Body=pickle_byt
 
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers
-from tensorflow.keras.layers.experimental.preprocessing import TextVectorization
+from keras import layers
+from keras.layers.preprocessing import TextVectorization
 from tensorflow.python.keras import backend as K
-from tensorflow.keras import Model
-from tensorflow.keras.preprocessing.text import Tokenizer
-from tensorflow.keras.preprocessing.sequence import pad_sequences
-from tensorflow.keras.callbacks import ModelCheckpoint,ReduceLROnPlateau,EarlyStopping,Callback
-from tensorflow.keras.regularizers import l2
+from keras import Model
+from keras.preprocessing.text import Tokenizer
+from keras.preprocessing.sequence import pad_sequences
+from keras.callbacks import ModelCheckpoint,ReduceLROnPlateau,EarlyStopping,Callback
+from keras.regularizers import l2
 from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import train_test_split
 from sklearn.utils import resample

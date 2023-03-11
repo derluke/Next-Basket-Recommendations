@@ -9,9 +9,9 @@ import numpy as np # linear algebra
 import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers
-from tensorflow.keras import Model
-from tensorflow.keras.callbacks import ModelCheckpoint,ReduceLROnPlateau,EarlyStopping,Callback
+from keras import layers
+from keras import Model
+from keras.callbacks import ModelCheckpoint,ReduceLROnPlateau,EarlyStopping,Callback
 from sklearn.model_selection import train_test_split
 from Generator import AutoencoderDataGenerator
 

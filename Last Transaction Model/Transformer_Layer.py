@@ -7,7 +7,7 @@ Created on Thu Dec 10 13:55:31 2020
 
 import tensorflow as tf
 from tensorflow import keras
-from tensorflow.keras import layers
+from keras import layers
 
 
 class MultiHeadSelfAttention(layers.Layer):
