@@ -120,7 +120,7 @@ if runType == "model":
                             tfidf_df = tfidf_df,\
                             batch_size=1024)
     
-    eval_object.get_predictions(dense_1, dense_2, dropout, optimiser)
+    eval_object.get_predictions()
     hit_rates = eval_object.call_evaluation()
     
     for df, df_hrs in hit_rates.items():
