@@ -5,6 +5,7 @@ Created on Thu Dec 10 14:05:20 2020
 @author: kbhandari
 """
 
+from pickletools import optimize
 import numpy as np # linear algebra
 import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
 import pickle
@@ -57,7 +58,7 @@ class Recommendation_Engine(data_to_arrays):
             data_config = pickle.load(open(self.wd+"data_config.pkl", "rb"))
             self.word_index, self.tokenizer, self.cat_max_length, self.cat_max_seq_length, self.cont_max_seq_length, self.categorical_cols, self.latent_features = data_config[0], data_config[1], data_config[2], data_config[3], data_config[4], data_config[5], data_config[6]            
             
-    def create_model(self):
+    def create_model(self, dense_1=50, dense_2=25, dropout=True, optimiser="adam"):
     
         inputs = []
         all_layers = []
@@ -92,10 +93,12 @@ class Recommendation_Engine(data_to_arrays):
         inputs.append(input_tfidf)
     
         numeric = layers.BatchNormalization()(input_tfidf)
-        numeric = layers.Dense(50, activation='relu', kernel_regularizer=l2(0.01), bias_regularizer=l2(0.01))(numeric) #50
-        numeric = layers.Dropout(.4)(numeric)
-        numeric = layers.Dense(25, kernel_regularizer=l2(0.01), bias_regularizer=l2(0.01))(numeric) #30  
-        numeric = layers.Dropout(.2)(numeric)
+        numeric = layers.Dense(dense_1, activation='relu', kernel_regularizer=l2(0.01), bias_regularizer=l2(0.01))(numeric) #50
+        if dropout:
+            numeric = layers.Dropout(.4)(numeric)
+        numeric = layers.Dense(dense_2, kernel_regularizer=l2(0.01), bias_regularizer=l2(0.01))(numeric) #30  
+        if dropout:
+            numeric = layers.Dropout(.2)(numeric)
         all_layers.append(numeric)
     
         x = layers.Concatenate()(all_layers)
@@ -106,9 +109,9 @@ class Recommendation_Engine(data_to_arrays):
         output = layers.Dense(1, activation='sigmoid', name='Final_Layer')(x)   
      
         self.reco_model = Model(inputs, output, name='Recommendation_Model')        
-        self.reco_model.compile(loss = "binary_crossentropy", optimizer = "adam", metrics=['accuracy'])
+        self.reco_model.compile(loss = "binary_crossentropy", optimizer = optimiser, metrics=['accuracy'])
         
-    def fit_model(self, batch_size=256, epochs=5, workers=1, shuffle=True):
+    def fit_model(self, batch_size=256, epochs=5, workers=1, shuffle=True, callbacks=None, save_model=True):
         
         train_data_gen = DataGenerator(sample_ids = self.learn_ids,\
                        dv_df = self.model_universe[['Customer ID','StockCode','DV']],\
@@ -149,7 +152,8 @@ class Recommendation_Engine(data_to_arrays):
 #        filepath="C:/My Desktop/Projects/model_checkpoint.hdf5"
 #        checkpoint = ModelCheckpoint(filepath, monitor='val_loss', verbose=1, save_best_only=True, mode='min')
         callbacks_list = [reduce_learning_rate, early_stopping]
-        
+        if callbacks:
+            callbacks_list += callbacks
         recommendation = self.reco_model.fit_generator(generator=train_data_gen,
                                         validation_data=val_data_gen,
                                         epochs=epochs,
@@ -159,10 +163,11 @@ class Recommendation_Engine(data_to_arrays):
                                         use_multiprocessing=False,
                                         workers=workers
                                         )
-        recommendation.model.save_weights(self.wd + 'keras-recommender.h5', save_format='h5')
+        if save_model:
+            recommendation.model.save_weights(self.wd + 'keras-recommender.h5', save_format='h5')
 #        recommendation.model.save(self.wd + "keras-recommender.h5", include_optimizer=False)
         
-    def generate_predictions(self, test_ids=None, batch_size=256):
+    def generate_predictions(self, test_ids=None, batch_size=256, dense_1=50, dense_2=25, dropout=True, optimiser="adam"):
         if test_ids is None:
                 if "DV" in self.model_universe.columns:
                     self.test_ids = self.model_universe[['Customer ID','StockCode','DV']]
@@ -172,9 +177,11 @@ class Recommendation_Engine(data_to_arrays):
             self.test_ids = test_ids.reset_index(drop=True, inplace=False)
 
         self.encoder = tf.keras.models.load_model(self.wd + "keras-encoder.h5")
-        self.create_model()
+        self.create_model(dense_1=dense_1, dense_2=dense_2, dropout=dropout, optimiser=optimiser)
         self.reco_model.load_weights(self.wd + "keras-recommender.h5")
-                        
+
+
+           
         test_data_gen = DataGenerator(sample_ids = self.test_ids,\
                        dv_df = None,\
                        last_n_txn_seq = self.model_universe,\

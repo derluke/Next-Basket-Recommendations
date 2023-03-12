@@ -57,6 +57,55 @@ class AutoencoderDataGenerator(keras.utils.Sequence):
         else:    
             return tfidf_df_sample.toarray()
 
+class data_to_arrays():
+    def __init__(self, cat_max_seq_length = 120, cont_max_seq_length = 120):
+        self.cat_max_seq_length = cat_max_seq_length
+        self.cont_max_seq_length = cont_max_seq_length
+        super(data_to_arrays, self).__init__()
+
+    # Continuous Sequence
+    def get_continuous_sequence(self, list_of_dfs, cols_to_exclude):
+        combined_arrays = None    
+        first_time = True
+        for i, df in enumerate(list_of_dfs):
+            if len(cols_to_exclude)>0:
+                df = df.drop(cols_to_exclude, axis=1, inplace=False)
+            array = df.iloc[:,0:self.cont_max_seq_length].copy()
+            if array.shape[1]>self.cont_max_seq_length:
+                array = array.iloc[:,0:self.cont_max_seq_length]
+            elif array.shape[1]<self.cont_max_seq_length:
+                cols_to_add = self.cont_max_seq_length-array.shape[1]
+                rows_to_add = array.shape[0]
+                df = pd.DataFrame(np.zeros((rows_to_add,cols_to_add)))
+                array = pd.concat([array, df], axis=1)
+            array = np.array(array.astype(np.float))
+            array = array.reshape(array.shape[0],array.shape[1],1)
+            if first_time:
+                combined_arrays = array
+                first_time = False
+            else:
+                combined_arrays = np.concatenate((combined_arrays, array), -1)
+        return combined_arrays
+  
+    def get_tokenizer(self, data, categorical_cols):
+        word_index, word_tokenizer, max_length = {}, {}, {}
+        for col in categorical_cols:
+           print("Processing column:", col)        
+           t = Tokenizer()
+           t.fit_on_texts(data[col].astype(str))
+           word_index[col] = t.word_index
+           word_tokenizer[col] = t       
+           max_length_value = max(data[col].str.split().str.len())
+           max_length[col] = max_length_value if max_length_value < self.cat_max_seq_length else self.cat_max_seq_length
+        return word_index, word_tokenizer, max_length
+    
+    def get_padding(self, data, categorical_cols, tokenizer, max_padding_length):
+        padded_docs = {}
+        for col in categorical_cols:
+            t = tokenizer[col]
+            txt_to_seq = t.texts_to_sequences(data[col].astype(str))        
+            padded_docs[col] = pad_sequences(txt_to_seq, maxlen=max_padding_length[col], padding='post')
+        return padded_docs
 
 class DataGenerator(data_to_arrays, keras.utils.Sequence):
     'Batch Generator for Keras'

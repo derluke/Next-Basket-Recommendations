@@ -1,0 +1,5 @@
+[default]
+entity = lukas-innig-private
+project = basket-predictor
+base_url = https://api.wandb.ai
+

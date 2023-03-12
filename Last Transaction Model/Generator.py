@@ -101,8 +101,8 @@ class DataGenerator(data_to_arrays, keras.utils.Sequence):
             X, Y = self.data_preprocess(batch_ids = batch)        
             return X,Y
         else:
-            X = self.data_preprocess(batch_ids = batch) 
-            return X
+            X, Y = self.data_preprocess(batch_ids = batch) 
+            return X, Y
 
     def on_epoch_end(self):
         if self.shuffle:
@@ -145,4 +145,4 @@ class DataGenerator(data_to_arrays, keras.utils.Sequence):
             target = pd.merge(batch_ids, self.dv_df, on = ['Customer ID','StockCode'], how="left").fillna(0 ,inplace=False).drop(['Customer ID', 'StockCode'], axis=1, inplace=False).values
             return input_list, target
         else:    
-            return input_list
+            return input_list, batch_ids

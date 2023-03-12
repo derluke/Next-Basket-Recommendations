@@ -5,6 +5,7 @@ Created on Thu Dec 10 13:38:58 2020
 @author: kbhandari
 """
 
+import imp
 import numpy as np # linear algebra
 import pandas as pd # data processing, CSV file I/O (e.g. pd.read_csv)
 import gc
@@ -14,7 +15,7 @@ from sklearn.utils import resample
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn import preprocessing
 from functools import reduce
-
+import wandb
 
 class Model_Universe():
     def __init__(self, wd, runType="model"):
@@ -33,6 +34,15 @@ class Model_Universe():
         print(df.dtypes)
         print(df.shape)
         print("\n")
+        try:
+            wandb.log({
+            comment: wandb.Table(
+                columns = df.columns, 
+                data    = df.iloc[:1000]
+                )
+            })
+        except:
+            print("WandB export failed")
         
     def read_file(self, fileName):        
         self.raw_data = pd.read_csv(self.wd + fileName, converters={'Customer ID':str})
@@ -41,7 +51,7 @@ class Model_Universe():
     def preprocess_data(self, popularity_threshold=10, customer_threshold=1):
         self.raw_data = self.raw_data.dropna(axis=0, subset=['Customer ID', 'InvoiceDate', 'Invoice'])
         self.raw_data = self.raw_data[self.raw_data['Customer ID'] != ""]
-        self.raw_data = self.raw_data.groupby(['Customer ID', 'InvoiceDate', 'Invoice', 'StockCode']).agg({'Quantity': sum, 'Price': sum}).reset_index(drop=False)
+        self.raw_data = self.raw_data.groupby(['Customer ID', 'InvoiceDate', 'Invoice', 'StockCode', 'Description']).agg({'Quantity': sum, 'Price': sum}).reset_index(drop=False)
         self.raw_data['InvoiceDate'] = pd.to_datetime(self.raw_data['InvoiceDate'])
         
         # Dense rank for transactions

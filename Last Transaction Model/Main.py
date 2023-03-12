@@ -8,15 +8,22 @@ Created on Thu Dec 10 14:15:41 2020
 import pandas as pd
 import gc
 import tensorflow as tf
+import numpy as np
+import pickle
 
 from Autoencoder_Model import Autoencoder
 from Model_Universe_Preparation import Model_Universe
 from Recommendation_Engine import Recommendation_Engine
 from Model_Evaluation import Evaluator
 from Configs import downsample_pct, cat_max_seq_length, cont_max_seq_length, categorical_cols, autoencoder_batch_size, autoencoder_epochs, latent_features, recommendation_batch_size, recommendation_epochs, workers, wd, fileName, runType, runTest
+import wandb
+from wandb.keras import WandbCallback
+
+# Initialize a new W&B run
 
     
 if runType == "model":
+    wandb.init(project="basket-predictor", group="Autoencoder")
     # Build Model Universe
     mdl_univ_object = Model_Universe(wd = wd,\
                                      runType="model")
@@ -37,9 +44,12 @@ if runType == "model":
                                   activation = "linear")
     autoencoder_model.fit_model(epochs = autoencoder_epochs,\
                                 batch_size = autoencoder_batch_size,\
-                                shuffle = True)
+                                shuffle = True,
+                                callbacks=[WandbCallback()])
     
     gc.collect()
+
+
     # Loading a keras model
     from tensorflow.python.keras import backend as K
     session = tf.compat.v1.Session()
@@ -51,10 +61,32 @@ if runType == "model":
 #    K.clear_session(). (import keras.backend as K)
     
     encoder = tf.keras.models.load_model(wd + "keras-encoder.h5")
+    pure_embeddings = encoder.predict(np.eye(tf_idf_matrix.shape[1]))
+    
+    tfidf_config = pickle.load(open(wd+"tfidf.pkl", "rb"))
+    vocab_df = pd.DataFrame(index=tfidf_config[0].vocabulary_.keys(), data=tfidf_config[0].vocabulary_.values()).reset_index()
+    vocab_df.columns=['StockCode', 'index']
+    embedding_cols = vocab_df.sort_values('index')['StockCode'].values
+    embeddings_df = pd.DataFrame(pure_embeddings, columns=[f"hidden_dim_{i}" for i in range(latent_features)])
+    embeddings_df['StockCode'] = embedding_cols
+
+    embeddings_df = embeddings_df.set_index('StockCode').join(mdl_univ_object.raw_data[['StockCode', 'Description']].drop_duplicates().set_index('StockCode'), how='left').reset_index()
+
+    wandb.log({
+        "embeddings": wandb.Table(
+            
+            dataframe = embeddings_df
+        )
+    })
+    wandb.finish()
+
+    wandb.init(project="basket-predictor", group="Recommender")
+    
+    
     tf_idf_matrix = pd.DataFrame(data=encoder.predict(tf_idf_matrix.toarray()))
     gc.collect()
+
     
-    # Build Recommendation Engine
     recommendation_object = Recommendation_Engine(wd = wd,\
                                                   model_universe = model_universe,\
                                                   categorical_cols = categorical_cols,\
@@ -74,7 +106,8 @@ if runType == "model":
     recommendation_object.fit_model(batch_size=recommendation_batch_size,\
                                     epochs=recommendation_epochs,\
                                     workers=workers,\
-                                    shuffle=True)
+                                    shuffle=True,
+                                    callbacks=[WandbCallback()])
     gc.collect()
     
     # Evaluation    
@@ -87,8 +120,14 @@ if runType == "model":
                             tfidf_df = tfidf_df,\
                             batch_size=1024)
     
-    eval_object.get_predictions()
-    eval_object.call_evaluation()
+    eval_object.get_predictions(dense_1, dense_2, dropout, optimiser)
+    hit_rates = eval_object.call_evaluation()
+    
+    for df, df_hrs in hit_rates.items():
+        for top_n, hit_rate in df_hrs.items():
+            wandb.log({
+                f'{df}_hit_rate@{top_n}': hit_rate,
+            })
     
 #    print("Train AUC:", roc_auc_score(ids_to_evaluate['Learn']['DV'], ids_to_evaluate['Learn']['Prediction']))
 #    print("Validation AUC:",roc_auc_score(ids_to_evaluate['Validation']['DV'], ids_to_evaluate['Validation']['Prediction']))
@@ -134,3 +173,4 @@ else:
     test_pred = recommendation_object.generate_predictions(test_ids = model_universe[['Customer ID', 'StockCode']],\
                                                            batch_size = recommendation_batch_size)
     test_pred.to_csv(wd + "Predictions.csv", header=True, index=False)
+    

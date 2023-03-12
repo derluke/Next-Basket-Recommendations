@@ -32,10 +32,10 @@ class Evaluator(Recommendation_Engine):
                           run_type="score")
         super().preprocess_data()
 
-    def get_predictions(self):
+    def get_predictions(self, dense_1=50, dense_2=25, dropout=True, optimiser="adam"):
         
         for df_name, ids in self.sample_ids_dict.items():
-            test_pred = super().generate_predictions(test_ids = ids, batch_size=self.batch_size)
+            test_pred = super().generate_predictions(test_ids = ids, batch_size=self.batch_size, dense_1=dense_1, dense_2=dense_2, dropout=dropout, optimiser=optimiser)
             self.ids_to_evaluate[df_name] = test_pred
 
     def model_hit_rate(self, df):
@@ -46,14 +46,20 @@ class Evaluator(Recommendation_Engine):
         
         actual_df = df.loc[df['DV']==1]
         print("Processed Actuals")
-        
+        hit_rates = {}
         for i in range(1, 11):
             hit_rate_df = pd.merge(actual_df, preds_df.loc[preds_df['Rank']<=i], how='left', on=['Customer ID','StockCode']).fillna(0)
             hit_rate = hit_rate_df.groupby('Customer ID').agg({'DV':'min', 'Rank':'max'})[['DV','Rank']].reset_index()
             hit_rate['Hit'] = np.where(hit_rate['Rank']>0, 1, 0)
             print("Hit Rate Top {0}: ".format(i), hit_rate['Hit'].sum() / len(hit_rate))
+            hit_rates[i] = hit_rate['Hit'].sum() / len(hit_rate)
+        return hit_rates
+        
             
     def call_evaluation(self):
+        hit_rates = {}
         for df_name, ids in self.ids_to_evaluate.items():
             print(df_name, "Hit Rate:")
-            self.model_hit_rate(self.ids_to_evaluate[df_name])
+            hr = self.model_hit_rate(self.ids_to_evaluate[df_name])
+            hit_rates[df_name] = hr
+        return hit_rates

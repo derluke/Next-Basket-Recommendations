@@ -14,7 +14,8 @@ from Model_Universe_Preparation import Model_Universe
 from Recommendation_Engine import Recommendation_Engine
 from Model_Evaluation import Evaluator
 from Configs import *
-
+import numpy as np
+from sklearn.metrics import roc_auc_score
     
 if runType == "model":
     # Build Model Universe
@@ -126,8 +127,8 @@ if runType == "model":
     scores = np.asarray(pred_learn['Prediction'].tolist())
     print(ndcg_score(true_relevance, scores))
     
-    print("Train AUC:", roc_auc_score(pred['Learn']['DV'], pred['Learn']['Prediction']))
-    print("Validation AUC:",roc_auc_score(pred['Validation']['DV'], pred['Validation']['Prediction']))
+    print("Train AUC:", roc_auc_score(pred_learn['DV'], pred_learn['Prediction']))
+    print("Validation AUC:",roc_auc_score(pred_validation['DV'], pred_validation['Prediction']))
     
 #    model_hit_rate(df = ids_to_evaluate['Learn'])
 #    model_hit_rate(df = ids_to_evaluate['Validation'])

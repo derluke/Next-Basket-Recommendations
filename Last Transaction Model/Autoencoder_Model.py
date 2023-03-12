@@ -44,12 +44,13 @@ class Autoencoder():
         self.encoder = Model(input_data, encoded, name='encoder_model')
         self.autoencoder.compile(optimizer='adam', loss='mean_squared_error', metrics=['mse'])
         
-    def fit_model(self, epochs = 20, batch_size = 256, shuffle = True):
+    def fit_model(self, epochs = 20, batch_size = 256, shuffle = True, callbacks=None):
     
         reduce_learning_rate = ReduceLROnPlateau(monitor = "mse", factor = 0.6, patience=1, min_lr=1e-5,  verbose=1, mode = 'min')
         early_stopping = EarlyStopping(monitor='mse', mode='min', min_delta=0.0001, verbose=1, patience=3, restore_best_weights = True)
         callbacks_list = [reduce_learning_rate, early_stopping]
-        
+        if callbacks:
+            callbacks_list += callbacks
         self.autoencoder.fit(self.tf_idf_learn.toarray(), self.tf_idf_learn.toarray(),
                         epochs=epochs,
                         batch_size=batch_size,

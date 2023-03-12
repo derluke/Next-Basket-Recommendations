@@ -165,9 +165,9 @@ class Model_Universe():
             self.tfidf_df = self.feature_universe[["Customer ID", "InvoiceDate"]]
             self.tf_idf_matrix = vectorizer.fit_transform(self.feature_universe['TXN_HISTORY'].values)
             pickle_byte_obj = [vectorizer]
-            pickle.dump(pickle_byte_obj, open(od + "tfidf.pkl", "wb"))
+            pickle.dump(pickle_byte_obj, open(self.od + "tfidf.pkl", "wb"))
         else:
-            tfidf_config = pickle.load(open(wd+"tfidf.pkl", "rb"))
+            tfidf_config = pickle.load(open(self.wd+"tfidf.pkl", "rb"))
             vectorizer = tfidf_config[0]
             self.tfidf_df = self.feature_universe[["Customer ID", "InvoiceDate"]]
             self.tf_idf_matrix = vectorizer.transform(self.feature_universe['TXN_HISTORY'].values)
